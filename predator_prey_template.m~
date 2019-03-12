@@ -66,9 +66,9 @@ function dwdt = eom(t,w,mr,my,Frmax,Fymax,c,forcetable_r,forcetable_y)
     end    
 
  function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
-     function [c, ceq]=nonlinineqcon(v)
-         c = v;
-         ceq = [];
+     function [c, ceq] nonlincon(t, cfun, ceqfun)
+         c = cfun(t)
+         ceq = ceqfun(t)
      end
 %% This is the function that should be submitted
 %  Please fill in the information below:
@@ -97,9 +97,9 @@ if (amiapredator)
     py_expt = @(time) vy * time + py;
     ar_required = @(t_int) (2 * (py_expt(t_int) - (vr * t_int) - pr)) / (t_int ^ 2);
     fr_required = @(t_int) (ar_required(t_int) - [0;-9.81]) * 100;
-    %fr_required_mag = @(t_int) norm(fr_required(t_int));
-    %t_int = fmincon(@(t) t, 1, [], [], [], [], [], [], @(t) nonlinineqcon(fr_required_mag(t) - 130));
-    F = fr_required(1);
+    fr_required_mag = @(t_int) norm(fr_required(t_int));
+    t_int = fmincon(@(t) t, 100, [], [], [], [], [], [], @(t) [fr_required_mag(t) - 130, 0]);
+    F = fr_required(t_int);
 else
     % Code to compute the force to be applied to the prey
     F = [sin(0.2*t);1];
