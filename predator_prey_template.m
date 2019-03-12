@@ -22,6 +22,24 @@ function predator_prey_template
    dist = sqrt((pr(:,1) - pr(:,1)).^2 +(pr(:,2) - py(:,2)).^2);
    figure
    plot (time_vals, dist)
+   
+   prs = [transpose(sol_vals(:,1));transpose(sol_vals(:,2))];
+   pys = [transpose(sol_vals(:,3));transpose(sol_vals(:,4))];
+   vrs = [transpose(sol_vals(:,5));transpose(sol_vals(:,6))];
+   vys = [transpose(sol_vals(:,7));transpose(sol_vals(:,8))];
+   
+   Frs = zeros(251,1);
+   for i=1:251
+       Frs(i) = norm(compute_f_groupname(time_vals(i),Frmax,Fymax,1,prs(:,i),vrs(:,i),pys(:,i),vys(:,i)));
+   end
+   
+   hold on
+   plot(time_vals, Frs/100);
+   
+   
+
+   
+   
  end
 function dwdt = eom(t,w,mr,my,Frmax,Fymax,c,forcetable_r,forcetable_y)
 % Extract the position and velocity variables from the vector w
