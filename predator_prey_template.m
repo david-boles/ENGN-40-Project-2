@@ -70,6 +70,8 @@ function dwdt = eom(t,w,mr,my,Frmax,Fymax,c,forcetable_r,forcetable_y)
          c = v;
          ceq = [];
      end
+ 
+ opts = optimoptions('fmincon', 'Display', 'off');
 %% This is the function that should be submitted
 %  Please fill in the information below:
  % Test time and place: Enter the time and room for your test here 
@@ -96,10 +98,25 @@ function dwdt = eom(t,w,mr,my,Frmax,Fymax,c,forcetable_r,forcetable_y)
 if (amiapredator)
     py_expt = @(time) vy * time + py;
     ar_required = @(t_int) (2 * (py_expt(t_int) - (vr * t_int) - pr)) / (t_int ^ 2);
+    ar_required_mag = @(t_int) norm(ar_required(t_int));
     fr_required = @(t_int) (ar_required(t_int) - [0;-9.81]) * 100;
-    %fr_required_mag = @(t_int) norm(fr_required(t_int));
-    %t_int = fmincon(@(t) t, 1, [], [], [], [], [], [], @(t) nonlinineqcon(fr_required_mag(t) - 130));
-    F = fr_required(1);
+    fr_required_mag = @(t_int) norm(fr_required(t_int));
+    %t_int_best = fmincon(@(t) -ar_required_mag(t), 15, [], [], [], [], [], [], @(t) nonlinineqcon(fr_required_mag(t) - 130));
+    %t_int_best = fmincon(@(t) abs(fr_required_mag(t) - (1.3 * 100 * 9.8)), 0.1, [], [], [], [], 0.01, [], [], opts);
+    %F = fr_required(t_int_best);
+    
+    t_int_best = 20;
+    for t = [0.1 : 0.1 : 20]
+        if fr_required_mag(t) < (1.3 * 100 * 9.8)
+            t_int_best = t;
+            break;
+        end
+    end    
+    F = fr_required(t_int_best);
+    if norm(F) > (1.3 * 100 * 9.8) 
+        disp("NOPE! Shortening...");
+        F = F ./ norm(F);
+    end
 else
     % Code to compute the force to be applied to the prey
     F = [sin(0.2*t);1];
