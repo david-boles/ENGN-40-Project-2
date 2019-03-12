@@ -72,6 +72,7 @@ function dwdt = eom(t,w,mr,my,Frmax,Fymax,c,forcetable_r,forcetable_y)
      end
  
  opts = optimoptions('fmincon', 'Display', 'off');
+    persistent lastTr lastVy lastAy;
 %% This is the function that should be submitted
 %  Please fill in the information below:
  % Test time and place: Enter the time and room for your test here 
@@ -95,20 +96,33 @@ function dwdt = eom(t,w,mr,my,Frmax,Fymax,c,forcetable_r,forcetable_y)
 %      magnitude you specify exceeds the maximum allowable
 %      value its magnitude will be reduced to this value 
 %      (without changing direction)
+
 if (amiapredator)
-    py_expt = @(time) vy * time + py;
+    ay = 0;
+    if ~isempty(lastTr)
+        if lastTr ~= t
+            ay = (vy - lastVy)/(t - lastTr);
+        else
+            ay = lastAy;
+        end
+    end
+    %{
+    disp(t);
+    disp(lastTr);
+    disp(vy);
+    disp(lastVy);
+    disp(ay);
+    %}
+    py_expt = @(time) (1/2) * ay * min(time, 2)^2 + vy * time + py;
     ar_required = @(t_int) (2 * (py_expt(t_int) - (vr * t_int) - pr)) / (t_int ^ 2);
     ar_required_mag = @(t_int) norm(ar_required(t_int));
     fr_required = @(t_int) (ar_required(t_int) - [0;-9.81]) * 100;
     fr_required_mag = @(t_int) norm(fr_required(t_int));
-    %t_int_best = fmincon(@(t) -ar_required_mag(t), 15, [], [], [], [], [], [], @(t) nonlinineqcon(fr_required_mag(t) - 130));
-    %t_int_best = fmincon(@(t) abs(fr_required_mag(t) - (1.3 * 100 * 9.8)), 0.1, [], [], [], [], 0.01, [], [], opts);
-    %F = fr_required(t_int_best);
     
     t_int_best = 20;
-    for t = [0.1 : 0.1 : 20]
-        if fr_required_mag(t) < (1.3 * 100 * 9.8)
-            t_int_best = t;
+    for t_int = [0.1 : 0.1 : 10]
+        if fr_required_mag(t_int) < (1.3 * 100 * 9.8)
+            t_int_best = t_int;
             break;
         end
     end    
@@ -117,6 +131,10 @@ if (amiapredator)
         disp("NOPE! Shortening...");
         F = F ./ norm(F);
     end
+    lastTr = t;
+    lastVy = vy;
+    lastAy = ay;
+    %disp(F);
 else
     % Code to compute the force to be applied to the prey
     F = [sin(0.2*t);1];
