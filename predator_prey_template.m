@@ -149,6 +149,21 @@ if (amiapredator)
         disp("NOPE! Shortening...");
         F = F ./ norm(F);
     end
+    
+    min_gnd_dist = 10;
+    ar_max_y = Frmax/100 - 9.81;
+    vr_y = vr(2);
+    pr_y = pr(2);
+    
+    traject_min = -0.5*vr_y^2/ar_max_y + pr_y;
+    if traject_min < min_gnd_dist
+        F = [0;Frmax];    
+    end 
+    
+    if pr_y <= 0
+        disp('PREDATOR GROUND COLLISION :( you ded mate');
+    end
+    
     lastTr = t;
     lastVy = vy;
     lastAy = ay;
