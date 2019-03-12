@@ -113,7 +113,7 @@ if (amiapredator)
     disp(lastVy);
     disp(ay);
     %}
-    py_expt = @(time) (1/2) * ay * min(time, 2)^2 + vy * time + py;
+    py_expt = @(time) (1/2) * ay * min(time, 5)^2 + vy * min(time, 10) + py;
     ar_required = @(t_int) (2 * (py_expt(t_int) - (vr * t_int) - pr)) / (t_int ^ 2);
     ar_required_mag = @(t_int) norm(ar_required(t_int));
     fr_required = @(t_int) (ar_required(t_int) - [0;-9.81]) * 100;
