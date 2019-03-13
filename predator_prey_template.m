@@ -52,6 +52,7 @@ function dwdt = eom(t,w,mr,my,Frmax,Fymax,c,forcetable_r,forcetable_y)
 % compute the force on the prey, determine the random forces on the prey, 
 % and determine the viscous forces on the prey      
          %enter the appropriate code here to compute dwdt ;
+         t
          dwdt = [vr;vy;Frtotal/mr;Fytotal/my];
     end
  
@@ -64,7 +65,7 @@ function dwdt = eom(t,w,mr,my,Frmax,Fymax,c,forcetable_r,forcetable_y)
 % distinguish between multiple events if you want to do this 
           event = 1;
           stop = pr - py;
-          direction = 0;
+          direction = 1;
     end    
 
  function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
@@ -94,34 +95,55 @@ function dwdt = eom(t,w,mr,my,Frmax,Fymax,c,forcetable_r,forcetable_y)
 
 if (amiapredator)
     % Code to compute the force to be applied to the predator
-    dt = 8;
+    dt = 0.1;
     F = Frmax*(py+dt*vy-(pr+dt*vr))/norm(py+dt*vy-(pr+dt*vr));
 else
     % Code to compute the force to be applied to the prey
-    if t < 20
-        F = 0;
-    end
-    
-    
-    rh = pr-py;
-    rhmag = norm(rh);
-    Fx = -rh(1);
-    Fy = -rh(2);
-    
-    if (rhmag<40)
-        vrel = vr - vy;
-        vrmag = norm(vr);
-        Fy = vr(1)/(vrmag+1.e-08);
-        Fx = -vr(2)/(vrmag+1.e-08);
-        if (vrel(1)*Fx+vrel(2)*Fy<0)
-            Fy = -Fy;
-            Fx = -Fx;
+    % should try to make prey shake up and down really fast 
+    vymag = norm(vy);
+    if t < 5
+        F = [-0.2;0.8];
+        F = Fymax*F/norm(F);
+        
+    elseif t < 10
+        F = [0;1];
+        F = Fymax*F/norm(F);
+            
+    else 
+        rh = pr-py;
+        rhmag = norm(rh);
+
+        if (rhmag<40)
+            vrel = vr - vy;
+            vrmag = norm(vr);
+            Fy = vr(1)/(vrmag+1.e-08);
+            Fx = -vr(2)/(vrmag+1.e-08);
+            if (vrel(1)*Fx+vrel(2)*Fy<0)
+                Fy = -Fy;
+                Fx = -Fx;
+            end
+            
+        else
+            % if predator accelerates in our direction, make a sharp turn 
+            if (vy(1) > 0) && (vr(1) > 0)
+                Fx = -rh(1);
+                Fy = -rh(2);
+            else
+                vrel = vr - vy;
+                vrmag = norm(vr);
+                Fy = vr(1)/(vrmag+1.e-08);
+                Fx = -vr(2)/(vrmag+1.e-08);
+                if (vrel(1)*Fx+vrel(2)*Fy<0)
+                    Fy = -Fy;
+                    Fx = -Fx;
+                end
+            end
+        
         end
+        F = Fymax*[Fx;Fy]/norm([Fx;Fy]);
+        F = F + 2.*Fymax*[1;0]/py(2);
+        F = Fymax*F/norm(F);
     end
-    
-    F = Fymax*[Fx;Fy]/norm([Fx;Fy]);
-    F = F + 2.*Fymax*[0;1]/py(2);
-    F = Fymax*F/norm(F);
 end
 end
 
@@ -167,6 +189,3 @@ for i = 1:length(t)
 end
 
 end
-
-
-
