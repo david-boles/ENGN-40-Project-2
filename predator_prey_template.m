@@ -87,7 +87,7 @@ function dwdt = eom(t,w,mr,my,Frmax,Fymax,c,forcetable_r,forcetable_y)
 function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
     function d2ydx2=bicubic_start_acceleration(Xs, Ys, Ms, Xe, Ye, Me)
         h = Ms * (Xe - Xs);
-        i = Ye - Ye;
+        i = Ye - Ys;
         k = Me * (Xe - Xs);
         b = 3*i - 2*h - k;
         d2ydx2 = (2*b)/((Xe - Xs)^2);
@@ -140,13 +140,13 @@ if (amiapredator)
     disp(ay);
     %}
     %py_expt = @(time) (1/2) * ay * min(time, 5)^2 + vy * min(time, 10) + py;
-    ar_required = @(t_int) compute_acceleration_for_target(pr, vr, py, vy, t_int);
+    ar_required = @(t_int) compute_acceleration_for_target(pr, vr, py, vy * max(1, 1/(t_int ^ 2)), t_int);
     ar_required_mag = @(t_int) norm(ar_required(t_int));
     fr_required = @(t_int) (ar_required(t_int) - [0;-9.81]) * 100;
     fr_required_mag = @(t_int) norm(fr_required(t_int));
     
-    t_int_best = 20;
-    for t_int = [0.1 : 0.1 : 10]
+    t_int_best = 250;
+    for t_int = [0.1 : 0.1 : 250]
         if fr_required_mag(t_int) < (1.3 * 100 * 9.8)
             t_int_best = t_int;
             %disp(t_int_best)
@@ -192,9 +192,17 @@ else
         F = [0; 10 * 9.81];
     end
     %}
+    
+    %{
     F = [sin(0.2*t);1];
     F = Fymax*F/norm(F);
-            
+    %}
+    
+    if (mod(t,50) <= 25 || py(2) <= 1)
+        F = [0;Fymax];
+    else
+        F = [0;-Fymax+12];
+    end
 end
 end
 
