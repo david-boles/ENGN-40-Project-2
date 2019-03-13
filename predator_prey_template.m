@@ -84,18 +84,25 @@ function dwdt = eom(t,w,mr,my,Frmax,Fymax,c,forcetable_r,forcetable_y)
           direction = -1;
     end    
 
- function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
-     function [c, ceq]=nonlinineqcon(v)
-         c = v;
-         ceq = [];
-     end
- 
- opts = optimoptions('fmincon', 'Display', 'off');
+function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
+    function d2ydx2=bicubic_start_acceleration(Xs, Ys, Ms, Xe, Ye, Me)
+        h = Ms * (Xe - Xs);
+        i = Ye - Ye;
+        k = Me * (Xe - Xs);
+        b = 3*i - 2*h - k;
+        d2ydx2 = (2*b)/((Xe - Xs)^2);
+    end
+    function a=compute_acceleration_for_target(pS, vS, pE, vE, time)
+        Ax = bicubic_start_acceleration(0, pS(1), vS(1), time, pE(1), vE(1));
+        Ay = bicubic_start_acceleration(0, pS(2), vS(2), time, pE(2), vE(2));
+        a = [Ax; Ay];
+    end
+    opts = optimoptions('fmincon', 'Display', 'off');
     persistent lastTr lastVy lastAy;
 %% This is the function that should be submitted
 %  Please fill in the information below:
  % Test time and place: Enter the time and room for your test here 
-% Group members: list the names of your group members here
+% Group members: list the nam   es of your group members here
 %%
 %  Variable definitions
 %  t:   Time
@@ -132,8 +139,8 @@ if (amiapredator)
     disp(lastVy);
     disp(ay);
     %}
-    py_expt = @(time) (1/2) * ay * min(time, 5)^2 + vy * min(time, 10) + py;
-    ar_required = @(t_int) (2 * (py_expt(t_int) - (vr * t_int) - pr)) / (t_int ^ 2);
+    %py_expt = @(time) (1/2) * ay * min(time, 5)^2 + vy * min(time, 10) + py;
+    ar_required = @(t_int) compute_acceleration_for_target(pr, vr, py, vy, t_int);
     ar_required_mag = @(t_int) norm(ar_required(t_int));
     fr_required = @(t_int) (ar_required(t_int) - [0;-9.81]) * 100;
     fr_required_mag = @(t_int) norm(fr_required(t_int));
@@ -142,12 +149,13 @@ if (amiapredator)
     for t_int = [0.1 : 0.1 : 10]
         if fr_required_mag(t_int) < (1.3 * 100 * 9.8)
             t_int_best = t_int;
+            %disp(t_int_best)
             break;
         end
     end    
     F = fr_required(t_int_best);
     if norm(F) > (1.3 * 100 * 9.8) 
-        %disp("NOPE! Shortening...");
+        disp("NOPE! Shortening...");
         F = F ./ norm(F);
     end
     
@@ -173,15 +181,19 @@ if (amiapredator)
     lastAy = ay;
     %disp(F);
 else
+    %{
     if 0 < t && t < 50
-        F = [0; 5 * 9.81];
+        F = [0; -5 * 9.81];
     elseif t < 100
         F = [0; 10 * 9.81];
     elseif t < 150
-        F = [0; 15 * 9.81];
+        F = [0; 35 * 9.81];
     else
         F = [0; 10 * 9.81];
     end
+    %}
+    F = [sin(0.2*t);1];
+    F = Fymax*F/norm(F);
             
 end
 end
