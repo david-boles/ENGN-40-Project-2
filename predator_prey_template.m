@@ -16,7 +16,7 @@ function predator_prey_template
    initial_w = [150,1000,0,1000,0,0,0,0]; % Initial position/velocity
    force_table_predator = rand(51,2)-0.5;
    force_table_prey = rand(51,2)-0.5;
-   options = odeset('Events',@event,'RelTol',0.001);
+   options = odeset('Events',@event,'RelTol',0.01);
    [time_vals,sol_vals] = ode45(@(t,w) eom(t,w,mr,my,Frmax,Fymax,c,force_table_predator,force_table_prey), ...
        [0:1:250],initial_w,options);
    animate_projectiles(time_vals,sol_vals);
@@ -101,34 +101,23 @@ else
     % Code to compute the force to be applied to the prey
     % should try to make prey shake up and down really fast 
     vymag = norm(vy);
-    if t < 5
-        F = [-0.2;0.8];
-        F = Fymax*F/norm(F);
+    if py(2) < 100
         
-    elseif t < 10
-        F = [0;1];
-        F = Fymax*F/norm(F);
-            
-    else 
-        rh = pr-py;
-        rhmag = norm(rh);
+    else
+        
+        if t < 5
+            F = [-0.2;0.8];
+            F = Fymax*F/norm(F);
 
-        if (rhmag<40)
-            vrel = vr - vy;
-            vrmag = norm(vr);
-            Fy = vr(1)/(vrmag+1.e-08);
-            Fx = -vr(2)/(vrmag+1.e-08);
-            if (vrel(1)*Fx+vrel(2)*Fy<0)
-                Fy = -Fy;
-                Fx = -Fx;
-            end
-            
-        else
-            % if predator accelerates in our direction, make a sharp turn 
-            if (vy(1) > 0) && (vr(1) > 0)
-                Fx = -rh(1);
-                Fy = -rh(2);
-            else
+        elseif t < 10
+            F = [0;1];
+            F = Fymax*F/norm(F);
+
+        else 
+            rh = pr-py;
+            rhmag = norm(rh);
+
+            if (rhmag<40)
                 vrel = vr - vy;
                 vrmag = norm(vr);
                 Fy = vr(1)/(vrmag+1.e-08);
@@ -137,13 +126,28 @@ else
                     Fy = -Fy;
                     Fx = -Fx;
                 end
+
+            else
+                % if predator accelerates in our direction, make a sharp turn 
+                if (vy(1) > 0) && (vr(1) > 0)
+                    Fx = -rh(1);
+                    Fy = -rh(2);
+                else
+                    vrel = vr - vy;
+                    vrmag = norm(vr);
+                    Fy = vr(1)/(vrmag+1.e-08);
+                    Fx = -vr(2)/(vrmag+1.e-08);
+                    if (vrel(1)*Fx+vrel(2)*Fy<0)
+                        Fy = -Fy;
+                        Fx = -Fx;
+                    end
+                end
+
             end
-        
+            F = Fymax*[Fx;Fy]/norm([Fx;Fy]);
+            F = F + 2.*Fymax*[1;0]/py(2);
+            F = Fymax*F/norm(F);
         end
-        F = Fymax*[Fx;Fy]/norm([Fx;Fy]);
-        F = F + 2.*Fymax*[1;0]/py(2);
-        F = Fymax*F/norm(F);
-    end
 end
 end
 
