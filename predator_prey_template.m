@@ -150,8 +150,8 @@ if (amiapredator)
         F = F ./ norm(F);
     end
     
-    min_gnd_dist = 10;
-    ar_max_y = Frmax/100 - 9.81;
+    min_gnd_dist = 1.5;
+    ar_max_y = Frmax/100-9.81-0.2*9.81;
     vr_y = vr(2);
     pr_y = pr(2);
     
@@ -161,7 +161,7 @@ if (amiapredator)
     end 
     
     if pr_y <= 0
-        disp('PREDATOR GROUND COLLISION :( you ded mate');
+        disp(['PREDATOR GROUND COLLISION @y=', num2str(pr_y)]);
     end
     
     lastTr = t;
@@ -170,7 +170,7 @@ if (amiapredator)
     %disp(F);
 else
     % Code to compute the force to be applied to the prey
-    F = [sin(0.2*t);1];
+    F = [sin(0.2*t);-1];
     F = Fymax*F/norm(F);
 end
 end
