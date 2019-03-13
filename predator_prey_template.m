@@ -22,6 +22,24 @@ function predator_prey_template
    dist = sqrt((pr(:,1) - pr(:,1)).^2 +(pr(:,2) - py(:,2)).^2);
    figure
    plot (time_vals, dist)
+   
+   prs = [transpose(sol_vals(:,1));transpose(sol_vals(:,2))];
+   pys = [transpose(sol_vals(:,3));transpose(sol_vals(:,4))];
+   vrs = [transpose(sol_vals(:,5));transpose(sol_vals(:,6))];
+   vys = [transpose(sol_vals(:,7));transpose(sol_vals(:,8))];
+   
+   Frs = zeros(251,1);
+   for i=1:251
+       Frs(i) = norm(compute_f_groupname(time_vals(i),Frmax,Fymax,1,prs(:,i),vrs(:,i),pys(:,i),vys(:,i)));
+   end
+   
+   hold on
+   plot(time_vals, Frs/100);
+   
+   
+
+   
+   
  end
 function dwdt = eom(t,w,mr,my,Frmax,Fymax,c,forcetable_r,forcetable_y)
 % Extract the position and velocity variables from the vector w
@@ -131,13 +149,28 @@ if (amiapredator)
         disp("NOPE! Shortening...");
         F = F ./ norm(F);
     end
+    
+    min_gnd_dist = 1.5;
+    ar_max_y = Frmax/100-9.81-0.2*9.81;
+    vr_y = vr(2);
+    pr_y = pr(2);
+    
+    traject_min = -0.5*vr_y^2/ar_max_y + pr_y;
+    if traject_min < min_gnd_dist
+        F = [0;Frmax];    
+    end 
+    
+    if pr_y <= 0
+        disp(['PREDATOR GROUND COLLISION @y=', num2str(pr_y)]);
+    end
+    
     lastTr = t;
     lastVy = vy;
     lastAy = ay;
     %disp(F);
 else
     % Code to compute the force to be applied to the prey
-    F = [sin(0.2*t);1];
+    F = [sin(0.2*t);-1];
     F = Fymax*F/norm(F);
 end
 end
