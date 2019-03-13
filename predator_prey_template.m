@@ -19,7 +19,7 @@ function predator_prey_template
        [0:1:250],initial_w,options);
    animate_projectiles(time_vals,sol_vals);
    pr = sol_vals(:,1:2); py = sol_vals(:,3:4);
-   dist = sqrt((pr(:,1) - pr(:,1)).^2 +(pr(:,2) - py(:,2)).^2);
+   dist = sqrt((pr(:,1) - py(:,1)).^2 +(pr(:,2) - py(:,2)).^2);
    
    figure
    plot (time_vals, dist)
@@ -132,13 +132,13 @@ if (amiapredator)
     disp(lastVy);
     disp(ay);
     %}
-    py_expt = @(time) (1/2) * ay * min(time, 5)^2 + vy * min(time, 10) + py;
+    py_expt = @(time) (1/2) * ay * min(time, 0)^2 + vy * min(time,2) + py;
     ar_required = @(t_int) (2 * (py_expt(t_int) - (vr * t_int) - pr)) / (t_int ^ 2);
     ar_required_mag = @(t_int) norm(ar_required(t_int));
     fr_required = @(t_int) (ar_required(t_int) - [0;-9.81]) * 100;
     fr_required_mag = @(t_int) norm(fr_required(t_int));
     
-    t_int_best = 20;
+    t_int_best = 5;
     for t_int = [0.1 : 0.1 : 10]
         if fr_required_mag(t_int) < (1.3 * 100 * 9.8)
             t_int_best = t_int;
@@ -173,17 +173,17 @@ if (amiapredator)
     lastAy = ay;
     %disp(F);
 else
-    if 0 < t && t < 50
-        F = [0; 5 * 9.81];
-    elseif t < 100
-        F = [0; 10 * 9.81];
-    elseif t < 150
-        F = [0; 15 * 9.81];
+    if (mod(t,50) <= 25 || py(2) <= 1)
+        F = [0;Fymax];
     else
-        F = [0; 10 * 9.81];
+        F = [0;-Fymax+9.81];
     end
-            
 end
+
+if sqrt((pr(1) - py(1))^2 +(pr(2) - py(2))^2) <= 1
+    disp(['GOTCHA']);
+end
+
 end
 
 
