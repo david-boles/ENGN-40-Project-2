@@ -85,12 +85,20 @@ function dwdt = eom(t,w,mr,my,Frmax,Fymax,c,forcetable_r,forcetable_y)
     end    
 
  function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
-     function [c, ceq]=nonlinineqcon(v)
-         c = v;
-         ceq = [];
-     end
  
- opts = optimoptions('fmincon', 'Display', 'off');
+     function d2ydx2=bicubic_start_acceleration(Xs, Ys, Ms, Xe, Ye, Me)
+        h = Ms * (Xe - Xs);
+        i = Ye - Ys;
+        k = Me * (Xe - Xs);
+        b = 3*i - 2*h - k;
+        d2ydx2 = (2*b)/((Xe - Xs)^2);
+    end
+    function a=compute_acceleration_for_target(pS, vS, pE, vE, time)
+        Ax = bicubic_start_acceleration(0, pS(1), vS(1), time, pE(1), vE(1));
+        Ay = bicubic_start_acceleration(0, pS(2), vS(2), time, pE(2), vE(2));
+        a = [Ax; Ay];
+    end
+
     persistent lastTr lastVy lastAy;
 %% This is the function that should be submitted
 %  Please fill in the information below:
@@ -132,15 +140,26 @@ if (amiapredator)
     disp(lastVy);
     disp(ay);
     %}
-    py_expt = @(time) (1/2) * ay * min(time, 0)^2 + vy * min(time,2) + py;
-    ar_required = @(t_int) (2 * (py_expt(t_int) - (vr * t_int) - pr)) / (t_int ^ 2);
-    ar_required_mag = @(t_int) norm(ar_required(t_int));
-    fr_required = @(t_int) (ar_required(t_int) - [0;-9.81]) * 100;
-    fr_required_mag = @(t_int) norm(fr_required(t_int));
     
-    t_int_best = 5;
-    for t_int = [0.1 : 0.1 : 10]
-        if fr_required_mag(t_int) < (1.3 * 100 * 9.8)
+    if sqrt((pr(1) - py(1))^2 +(pr(2) - py(2))^2) >= 0
+        ar_required = @(t_int) compute_acceleration_for_target(pr, vr, py, vy * max(1, 1/(t_int ^ 2)), t_int);
+        ar_required_mag = @(t_int) norm(ar_required(t_int));
+        fr_required = @(t_int) (ar_required(t_int) - [0;-9.81]) * 100;
+        fr_required_mag = @(t_int) norm(fr_required(t_int));
+        t_int_best = 250;
+        t_search_max = 250;
+    else
+        py_expt = @(time) (1/2) * ay * min(time, 0)^2 + vy * min(time,2) + py;
+        ar_required = @(t_int) (2 * (py_expt(t_int) - (vr * t_int) - pr)) / (t_int ^ 2);
+        ar_required_mag = @(t_int) norm(ar_required(t_int));
+        fr_required = @(t_int) (ar_required(t_int) - [0;-9.81]) * 100;
+        fr_required_mag = @(t_int) norm(fr_required(t_int));
+        t_int_best = 8;
+        t_search_max = 10;
+    end
+    
+    for t_int = [0.1 : 0.1 : t_search_max]
+        if fr_required_mag(t_int) < (1.3 * 100 * 9.81)
             t_int_best = t_int;
             break;
         end
@@ -228,6 +247,4 @@ for i = 1:length(t)
 end
 
 end
-
-
 
