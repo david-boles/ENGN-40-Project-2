@@ -100,11 +100,8 @@ if (amiapredator)
 else
     % Code to compute the force to be applied to the prey
     if t < 20
-        F = 0;
-    end
-    
-    F = [t^3:1];
-    F = Fymax*F/norm(F);
+        F = 0
+        
 end
 end
 

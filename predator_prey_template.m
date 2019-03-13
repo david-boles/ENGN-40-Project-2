@@ -52,7 +52,6 @@ function dwdt = eom(t,w,mr,my,Frmax,Fymax,c,forcetable_r,forcetable_y)
 % compute the force on the prey, determine the random forces on the prey, 
 % and determine the viscous forces on the prey      
          %enter the appropriate code here to compute dwdt ;
-         t
          dwdt = [vr;vy;Frtotal/mr;Fytotal/my];
     end
  
