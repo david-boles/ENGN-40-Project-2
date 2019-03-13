@@ -115,18 +115,17 @@ else
         vrel = vy-vy;
         vrmag = norm(vr);
         if (rhmag<40) || ...    
-           ((abs(vy(1)/norm(vy)-vr(1)/norm(vr))) < 0.1) && ...
-           ((abs(vy(2)/norm(vy) - vr(2)/norm(vr))) < 0.1)
+           ((abs((vy(1)-vr(1)) < 0.1) && (abs(vy(2) - vr(2)) < 0.1))
            % if predator speeds in our direction, make a sharp turn
-            Fy = -vr(1)/(vrmag+1.e-08);
-            Fx = vr(2)/(vrmag+1.e-08);
+            Fy = vr(1)/(vrmag+1.e-08);
+            Fx = -vr(2)/(vrmag+1.e-08);
             if (vrel(1)*Fx+vrel(2)*Fy<0)
                 Fy = -Fy;
                 Fx = -Fx;
             end
         else
              
-           B = 2;
+           B = 0.4;
            Fx = -(rh(1)+B*(vrel(1)));
            Fy = -(rh(2)+B*(vrel(2))); 
         end
