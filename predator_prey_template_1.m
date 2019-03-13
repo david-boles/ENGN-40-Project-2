@@ -1,6 +1,6 @@
 
 
-function predator_prey_template
+function predator_prey_template_1
    %% NOTE: DO NOT SUBMIT THIS SCRIPT
    %  Submit only the compute_f_groupname() function below, in a
    %  separate file, which must be named compute_f_groupname.m
@@ -99,10 +99,6 @@ if (amiapredator)
     F = Frmax*(py+dt*vy-(pr+dt*vr))/norm(py+dt*vy-(pr+dt*vr));
 else
     % Code to compute the force to be applied to the prey
-    if t < 20
-        F = 0;
-    end
-    
     
     rh = pr-py;
     rhmag = norm(rh);

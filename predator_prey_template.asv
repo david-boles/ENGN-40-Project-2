@@ -103,6 +103,19 @@ else
         F = 0;
     end
     
+    ax = diff(vr);
+    ay = diff(vr);
+    amag = sqrt(ax^2 + ay^2);
+    
+    if amag > 1.4*9.81
+        vrel = vr - vy;
+        vrmag = norm(vr);
+        Fy = vr(1)/(vrmag+1.e-08);
+        Fx = -vr(2)/(vrmag+1.e-08);
+        Fy = -Fy;
+        Fx = -Fx;
+        F = Fymax*[Fx;Fy];
+    end
     
     rh = pr-py;
     rhmag = norm(rh);
