@@ -14,7 +14,7 @@ function predator_prey_template
    initial_w = [150,1000,0,1000,0,0,0,0]; % Initial position/velocity
    force_table_predator = rand(51,2)-0.5;
    force_table_prey = rand(51,2)-0.5;
-   options = odeset('Events',@event,'RelTol',0.01);
+   options = odeset('Events',@event,'RelTol',0.001);
    [time_vals,sol_vals] = ode45(@(t,w) eom(t,w,mr,my,Frmax,Fymax,c,force_table_predator,force_table_prey), ...
        [0:1:250],initial_w,options);
    animate_projectiles(time_vals,sol_vals);
@@ -238,20 +238,49 @@ if (amiapredator)
     lastTr = t;
     lastVy = vy;
     lastAy = ay;
+ 
     
+     % DUSTIN's code
+    %{
+    g = 9.81;
+    mr = 100; % Mass of predator, in kg
+    my = 10.; % Mass of prey, in kg
+    min_h = 5;
+    buff_h = 1;
+    % Code to compute the force to be applied to the predator
+    C = 0.4;
+    n = py - pr + C*(vy - vr);
+    n = n/norm(n);
+    Frgrav = -mr*g*[0;1];
+    if pr(2) <= min_h || (vr(2) < 0 && sqrt(2*g*0.1*(pr(2) - buff_h)) < -vr(2))
+        F = Frmax*[0;1];
+    else
+        Fr = Frmax*n;
+        if n(2) >= 0
+            x = (2*Fr(2)*Frgrav(2)+sqrt((2*Fr(2)*Frgrav(2))^2 - 4*(Fr(1)^2+Fr(2)^2)*(Frgrav(2)^2-Frmax^2)))/(2*(Fr(1)^2+Fr(2)^2));
+            F = x*Fr - Frgrav;
+        else
+            Fn = (-Frgrav(2)*Fr(1)^2-sqrt(Fr(2)^2*(-Frgrav(2)^2*Fr(1)^2+Frmax^2*(Fr(1)^2+Fr(2)^2))))/(Fr(1)^2+Fr(2)^2);
+            x = (Fn+Frgrav(2))/Fr(2);
+            F = [x*Fr(1);Fn];
+        end
+    end
+    %}
 else
        % Code to compute the force to be applied to the prey
     % should try to make prey shake up and down really fast 
-    if py(2) < 70
-        F=Fymax*[0;1];
+    if py(2) < 100
+        for t=t:(t+10)
+            F=Fymax*[0;1];
+        end
     else
         rh = pr-py;
         rhmag = norm(rh);
         
-        %prmag = norm(pr);
         vrel = vy-vr;
         vrmag = norm(vr);
-        %vymag = norm(vy);
+    
+        % if distance between predator and prey is less than 40m
         if (rhmag<40)
             Fy = -(vr(1)/(vrmag+1.e-08));
             Fx = (vr(2)/(vrmag+1.e-08));
@@ -261,22 +290,16 @@ else
             end
 
        
-            
+        % Gathering the forces together    
         F = Fymax*[Fx;Fy]/norm([Fx;Fy]);
         F = F + 2.*Fymax*[1;0]/py(2);
         F = Fymax*F/norm(F);
         else
            % Sufficiently far apart
            
-           
-           %B = 2;
-           %Fx = -(rh(1)+B*(vrel(1)));
-           %Fy = -(rh(2)+B*(vrel(2)));
-           %Fy = -1;
-           %Fx = -rh(1);
-           %Fy = -rh(2);
-           % MIND GAMES APPROACH
-           if (py/norm(py)-pr/norm(pr)) == vr/norm(vr)
+           % if the direction of the displacement apart is the same as
+           % the velocity of the predator
+           if ((py-pr)/norm(py-pr)) == vr/norm(vr)
                 Fy = -(vr(1)/(vrmag+1.e-08));
                 Fx = (vr(2)/(vrmag+1.e-08));
                 if (vrel(1)*Fx+vrel(2)*Fy<0)
@@ -287,6 +310,8 @@ else
                 F = F + 2.*Fymax*[1;0]/py(2);
                 F = Fymax*F/norm(F);
            else
+               
+             % Predicting the path of the predator
              dt = 4;
              F = Fymax*((py+dt*vy+(pr+dt*vr)))/norm(py+dt*vy-(pr+dt*vr)); 
            end
