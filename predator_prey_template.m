@@ -105,21 +105,6 @@ end
    
 
  function F = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy)
- 
-     function d2ydx2=bicubic_start_acceleration(Xs, Ys, Ms, Xe, Ye, Me)
-        h = Ms * (Xe - Xs);
-        i = Ye - Ys;
-        k = Me * (Xe - Xs);
-        b = 3*i - 2*h - k;
-        d2ydx2 = (2*b)/((Xe - Xs)^2);
-    end
-    function a=compute_acceleration_for_target(pS, vS, pE, vE, time)
-        Ax = bicubic_start_acceleration(0, pS(1), vS(1), time, pE(1), vE(1));
-        Ay = bicubic_start_acceleration(0, pS(2), vS(2), time, pE(2), vE(2));
-        a = [Ax; Ay];
-    end
-
-    persistent lastTr lastVy lastAy;
 %% This is the function that should be submitted
 %  Please fill in the information below:
  % Test time and place: Enter the time and room for your test here 
@@ -176,9 +161,9 @@ if (amiapredator)
     %}
     
 
-    if sqrt((pr(1) - py(1))^2 +(pr(2) - py(2))^2) < -1
-
-        ar_required = @(t_int) compute_acceleration_for_target(pr, vr, py, vy * max(1, 1/(t_int ^ 2)), t_int);
+    if sqrt((pr(1) - py(1))^2 +(pr(2) - py(2))^2) > 200
+        py_expt = @(time) (1/2) * ay * min(time, 0)^2 + vy * min(time,20) + py;
+        ar_required = @(t_int) compute_acceleration_for_target(pr, vr, py_expt(t_int), vy, t_int);
         ar_required_mag = @(t_int) norm(ar_required(t_int));
         fr_required = @(t_int) (ar_required(t_int) - [0;-9.81]) * 100;
         fr_required_mag = @(t_int) norm(fr_required(t_int));
@@ -271,14 +256,17 @@ if (amiapredator)
 else
     % Code to compute the force to be applied to the prey
     % should try to make prey shake up and down really fast 
+    min_gnd_dist = 1;
+    ay_max_y = Fymax/10-9.81-0.2*9.81;
+    vy_y = vy(2);
+    py_y = py(2);
     
-    
-    % When it reaches below 100m
-    if py(2) < 70
-        % Goes straight back up
-        F=Fymax*[0;1];
-        
-    % above 100m
+    traject_min = -0.5*vy_y^2/ay_max_y + py_y;
+
+    if traject_min < min_gnd_dist && vy_y < 0
+
+        F = [0;Fymax];
+
     else
         rh = pr-py;
         rhmag = norm(rh);
@@ -287,7 +275,9 @@ else
         vrel = vy-vr;
         vrmag = norm(vr);
         %vymag = norm(vy);
-        if (rhmag<40)
+        if (rhmag<40) || ...    
+           ((abs(vy(1)/norm(vy)-vr(1)/norm(vr))) < 0.1) && ...
+           ((abs(vy(2)/norm(vy) - vr(2)/norm(vr))) < 0.1)
             Fy = -(vr(1)/(vrmag+1.e-08));
             Fx = (vr(2)/(vrmag+1.e-08));
             if (vrel(1)*Fx+vrel(2)*Fy<0)
