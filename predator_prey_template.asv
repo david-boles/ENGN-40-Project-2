@@ -156,7 +156,7 @@ end
 
     persistent lastTr lastVy lastAy;
 if (amiapredator)
-
+    
     ay = 0;
     if ~isempty(lastTr)
         if lastTr ~= t
@@ -164,6 +164,8 @@ if (amiapredator)
         else
             ay = lastAy;
         end
+    else
+        lastTr = -1;
     end
     %{
     disp(t);
@@ -184,7 +186,7 @@ if (amiapredator)
         t_search_max = 250;
     else
 
-        py_expt = @(time) (1/2) * ay * min(time, 0)^2 + vy * min(time,20) + py;
+        py_expt = @(time) (1/2) * ay * min(time, 5)^2 + vy * min(time,20) + py;
 
         ar_required = @(t_int) (2 * (py_expt(t_int) - (vr * t_int) - pr)) / (t_int ^ 2);
         ar_required_mag = @(t_int) norm(ar_required(t_int));
@@ -235,10 +237,12 @@ if (amiapredator)
         F = Frmax*F./ norm(F);
 
     end
-    lastTr = t;
-    lastVy = vy;
-    lastAy = ay;
- 
+    
+    if(abs(t-lastTr) > 0.01)
+        lastTr = t;
+        lastVy = vy;
+        lastAy = ay;
+    end
     
      % DUSTIN's code
     %{
@@ -269,10 +273,9 @@ if (amiapredator)
 else
        % Code to compute the force to be applied to the prey
     % should try to make prey shake up and down really fast 
-    if py(2) < 1000
-        for t=t:(t+10)
-            F=Fymax*[0;1];
-        end
+    if t < 10
+        F=Fymax*[0;-1];
+    elseif (
     else
         rh = pr-py;
         rhmag = norm(rh);
@@ -281,7 +284,7 @@ else
         vrmag = norm(vr);
     
         % if distance between predator and prey is less than 40m
-        if (rhmag<40)
+        if (rhmag<50)
             Fy = -(vr(1)/(vrmag+1.e-08));
             Fx = (vr(2)/(vrmag+1.e-08));
             if (vrel(1)*Fx+vrel(2)*Fy<0)
@@ -312,7 +315,7 @@ else
            else
                
              % Predicting the path of the predator
-             dt = 4;
+             dt = 3;
              F = Fymax*((py+dt*vy+(pr+dt*vr)))/norm(py+dt*vy-(pr+dt*vr)); 
            end
         end

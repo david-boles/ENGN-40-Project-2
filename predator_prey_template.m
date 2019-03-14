@@ -94,13 +94,11 @@ function [event,stop,direction] = event(t,w)
 % predator and prey.  You could add other events to detect when predator/prey hit 
 % the ground as well.  See the MATLAB manual for how to detect and 
 % distinguish between multiple events if you want to do this 
-    event = 1;
-    if (norm(pr - py) - 5 == 0) || (py(2) < 0) || (pr(2) < 0)
-      %event = 0;
-      
-    end
-    stop = 1;
-    direction = 0;
+    event(1) = norm(pr-py)-1;
+    event(2) = py(2);
+    event(3) = pr(2);
+    stop(1:3) = 1;
+    direction(1:3) = 0;
 end
    
 
@@ -153,6 +151,12 @@ function val=transition_between(pos, val_neg, val_pos)
     s = sigmoid(pos, 100);
     val = s*val_pos + (1 - s)*val_neg;
 end
+function r=attenuate_when_down(a)
+    if a(2) < (-0.7 * 100 * 9.8 * 1.3)
+        a(2) = (-0.7 * 100 * 9.8 * 1.3);
+    end
+    r=a;
+end
 
     persistent lastTr lastVy lastAy;
 if (amiapredator)
@@ -176,9 +180,11 @@ if (amiapredator)
     %}
     
 
-    if sqrt((pr(1) - py(1))^2 +(pr(2) - py(2))^2) > 200
-        py_expt = @(time) (1/2) * ay * min(time, 0)^2 + vy * min(time,20) + py;
-        ar_required = @(t_int) compute_acceleration_for_target(pr, vr, py_expt(t_int), vy, t_int);
+    if sqrt((pr(1) - py(1))^2 +(pr(2) - py(2))^2) > 100
+        %py_expt = @(time) (1/2) * ay * min(time, 0)^2 + vy * min(time,20) + py;
+        py_expt = @(time) (1/2) * ay * min(time, 5)^2 + vy * min(time,25) + py;
+        vy_expt = @(time)  ay * min(time, 5) + vy;
+        ar_required = @(t_int) compute_acceleration_for_target(pr, vr, py_expt(t_int), vy_expt(t_int), t_int);
         ar_required_mag = @(t_int) norm(ar_required(t_int));
         fr_required = @(t_int) (ar_required(t_int) - [0;-9.81]) * 100;
         fr_required_mag = @(t_int) norm(fr_required(t_int));
@@ -186,9 +192,9 @@ if (amiapredator)
         t_search_max = 250;
     else
 
-        py_expt = @(time) (1/2) * ay * min(time, 5)^2 + vy * min(time,20) + py;
+        py_expt = @(time) (1/2) * ay * min(time, 5)^2 + vy * min(time,15) + py;
 
-        ar_required = @(t_int) (2 * (py_expt(t_int) - (vr * t_int) - pr)) / (t_int ^ 2);
+        ar_required = @(t_int) attenuate_when_down(2 * (py_expt(t_int) - (vr * t_int) - pr)) / (t_int ^ 2);
         ar_required_mag = @(t_int) norm(ar_required(t_int));
         fr_required = @(t_int) (ar_required(t_int) - [0;-9.81]) * 100;
         fr_required_mag = @(t_int) norm(fr_required(t_int));
@@ -223,7 +229,7 @@ if (amiapredator)
     end
     
     if pr_y <= 0
-        disp(['PREDATOR GROUND COLLISION @y=', num2str(pr_y)]);
+        %disp(['PREDATOR GROUND COLLISION @y=', num2str(pr_y)]);
     end 
     
     
@@ -244,39 +250,12 @@ if (amiapredator)
         lastAy = ay;
     end
     
-     % DUSTIN's code
-    %{
-    g = 9.81;
-    mr = 100; % Mass of predator, in kg
-    my = 10.; % Mass of prey, in kg
-    min_h = 5;
-    buff_h = 1;
-    % Code to compute the force to be applied to the predator
-    C = 0.4;
-    n = py - pr + C*(vy - vr);
-    n = n/norm(n);
-    Frgrav = -mr*g*[0;1];
-    if pr(2) <= min_h || (vr(2) < 0 && sqrt(2*g*0.1*(pr(2) - buff_h)) < -vr(2))
-        F = Frmax*[0;1];
-    else
-        Fr = Frmax*n;
-        if n(2) >= 0
-            x = (2*Fr(2)*Frgrav(2)+sqrt((2*Fr(2)*Frgrav(2))^2 - 4*(Fr(1)^2+Fr(2)^2)*(Frgrav(2)^2-Frmax^2)))/(2*(Fr(1)^2+Fr(2)^2));
-            F = x*Fr - Frgrav;
-        else
-            Fn = (-Frgrav(2)*Fr(1)^2-sqrt(Fr(2)^2*(-Frgrav(2)^2*Fr(1)^2+Frmax^2*(Fr(1)^2+Fr(2)^2))))/(Fr(1)^2+Fr(2)^2);
-            x = (Fn+Frgrav(2))/Fr(2);
-            F = [x*Fr(1);Fn];
-        end
-    end
-    %}
 else
        % Code to compute the force to be applied to the prey
     % should try to make prey shake up and down really fast 
-    if py(2) < 100
-        for t=t:(t+10)
-            F=Fymax*[0;1];
-        end
+    
+    if py(2)<70
+        F=Fymax*[0; 1];
     else
         rh = pr-py;
         rhmag = norm(rh);
@@ -285,7 +264,7 @@ else
         vrmag = norm(vr);
     
         % if distance between predator and prey is less than 40m
-        if (rhmag<40)
+        if (rhmag<70)
             Fy = -(vr(1)/(vrmag+1.e-08));
             Fx = (vr(2)/(vrmag+1.e-08));
             if (vrel(1)*Fx+vrel(2)*Fy<0)
@@ -316,8 +295,8 @@ else
            else
                
              % Predicting the path of the predator
-             dt = 4;
-             F = Fymax*((py+dt*vy+(pr+dt*vr)))/norm(py+dt*vy-(pr+dt*vr)); 
+             dt = 1;
+             F = Fymax*(-(py+dt*vy+(pr+dt*vr)))/norm(py+dt*vy-(pr+dt*vr)); 
            end
         end
         
@@ -327,9 +306,9 @@ end
 
 
 %
-if sqrt((pr(1) - py(1))^2 +(pr(2) - py(2))^2) <= 1
-    disp(['GOTCHA']);
-end
+%if sqrt((pr(1) - py(1))^2 +(pr(2) - py(2))^2) <= 1
+   % disp(['GOTCHA']);
+%end
 
 
 
