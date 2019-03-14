@@ -29,14 +29,21 @@ function predator_prey_template
    vrs = [transpose(sol_vals(:,5));transpose(sol_vals(:,6))];
    vys = [transpose(sol_vals(:,7));transpose(sol_vals(:,8))];
    
-   Frs = zeros(251,1);
+   Fr_xs = zeros(251,1);
+   Fr_ys = zeros(251,1);
+   
    for i=1:251
-       Frs(i) = norm(compute_f_groupname(time_vals(i),Frmax,Fymax,1,prs(:,i),vrs(:,i),pys(:,i),vys(:,i)));
+       Fr = compute_f_groupname(time_vals(i),Frmax,Fymax,1,prs(:,i),vrs(:,i),pys(:,i),vys(:,i));
+       Fr_xs(i) = Fr(1);
+       Fr_ys(i) = Fr(2);
    end
    
    hold on
-   plot(time_vals, Frs/100);
+   plot(time_vals, Fr_xs/100);
+   plot(time_vals, Fr_ys/100);
    
+   data = [time_vals, sol_vals, Fr_xs, Fr_ys];
+   csvwrite('datlog.csv', data);
    
 
    
@@ -50,6 +57,9 @@ function dwdt = eom(t,w,mr,my,Frmax,Fymax,c,forcetable_r,forcetable_y)
 % Compute all the forces on the predator      
         amiapredator = true;
         Fr = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy);
+        if norm(Fr) > Frmax
+            Fr = Frmax*Fr/norm(Fr);
+        end
 % The force table varies between +/- 0.5 so this makes the random force
 % vary between +/- 0.2*mr*g     
         Frrand = 0.4*mr*g*compute_random_force(t,forcetable_r);
@@ -59,6 +69,9 @@ function dwdt = eom(t,w,mr,my,Frmax,Fymax,c,forcetable_r,forcetable_y)
 % Now do the forces on the prey        
         amiapredator = false;
         Fy = compute_f_groupname(t,Frmax,Fymax,amiapredator,pr,vr,py,vy);
+        if norm(Fy) > Fymax
+            Fy = Fymax*Fy/norm(Fy);
+        end
 % The force table varies between +/- 0.5 so this makes the random force
 % vary between +/- 0.2*mr*g     
         Fyrand = 0.4*my*g*compute_random_force(t,forcetable_y);
@@ -141,7 +154,7 @@ if (amiapredator)
     disp(ay);
     %}
     
-    if sqrt((pr(1) - py(1))^2 +(pr(2) - py(2))^2) >= 0
+    if sqrt((pr(1) - py(1))^2 +(pr(2) - py(2))^2) < 0
         ar_required = @(t_int) compute_acceleration_for_target(pr, vr, py, vy * max(1, 1/(t_int ^ 2)), t_int);
         ar_required_mag = @(t_int) norm(ar_required(t_int));
         fr_required = @(t_int) (ar_required(t_int) - [0;-9.81]) * 100;
@@ -149,12 +162,12 @@ if (amiapredator)
         t_int_best = 250;
         t_search_max = 250;
     else
-        py_expt = @(time) (1/2) * ay * min(time, 0)^2 + vy * min(time,2) + py;
+        py_expt = @(time) (1/2) * ay * min(time, 5)^2 + vy * min(time,20) + py;
         ar_required = @(t_int) (2 * (py_expt(t_int) - (vr * t_int) - pr)) / (t_int ^ 2);
         ar_required_mag = @(t_int) norm(ar_required(t_int));
         fr_required = @(t_int) (ar_required(t_int) - [0;-9.81]) * 100;
         fr_required_mag = @(t_int) norm(fr_required(t_int));
-        t_int_best = 8;
+        t_int_best = 10;
         t_search_max = 10;
     end
     
@@ -167,10 +180,11 @@ if (amiapredator)
     F = fr_required(t_int_best);
     if norm(F) > (1.3 * 100 * 9.8) 
         %disp("NOPE! Shortening...");
-        F = F ./ norm(F);
+        F = Frmax*F ./ norm(F);
     end
     
-    min_gnd_dist = 1.5;
+    
+    min_gnd_dist = 1;
     ar_max_y = Frmax/100-9.81-0.2*9.81;
     vr_y = vr(2);
     pr_y = pr(2);
@@ -182,7 +196,8 @@ if (amiapredator)
     
     if pr_y <= 0
         disp(['PREDATOR GROUND COLLISION @y=', num2str(pr_y)]);
-    end
+    end 
+    
     
     if floor(t) > floor(lastTr)
         disp(t);
@@ -192,16 +207,21 @@ if (amiapredator)
     lastAy = ay;
     %disp(F);
 else
+    
     if (mod(t,50) <= 25 || py(2) <= 1)
         F = [0;Fymax];
     else
         F = [0;-Fymax+9.81];
     end
+
 end
 
 if sqrt((pr(1) - py(1))^2 +(pr(2) - py(2))^2) <= 1
     disp(['GOTCHA']);
 end
+
+
+
 
 end
 
