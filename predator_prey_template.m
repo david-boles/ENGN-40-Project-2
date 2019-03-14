@@ -164,6 +164,8 @@ if (amiapredator)
         else
             ay = lastAy;
         end
+    else
+        lastTr = -1;
     end
     %{
     disp(t);
@@ -184,7 +186,7 @@ if (amiapredator)
         t_search_max = 250;
     else
 
-        py_expt = @(time) (1/2) * ay * min(time, 0)^2 + vy * min(time,20) + py;
+        py_expt = @(time) (1/2) * ay * min(time, 5)^2 + vy * min(time,20) + py;
 
         ar_required = @(t_int) (2 * (py_expt(t_int) - (vr * t_int) - pr)) / (t_int ^ 2);
         ar_required_mag = @(t_int) norm(ar_required(t_int));
@@ -235,10 +237,12 @@ if (amiapredator)
         F = Frmax*F./ norm(F);
 
     end
-    lastTr = t;
-    lastVy = vy;
-    lastAy = ay;
- 
+    
+    if(abs(t-lastTr) > 0.01)
+        lastTr = t;
+        lastVy = vy;
+        lastAy = ay;
+    end
     
      % DUSTIN's code
     %{
