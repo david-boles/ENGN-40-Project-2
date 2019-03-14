@@ -14,7 +14,7 @@ function predator_prey_template
    initial_w = [150,1000,0,1000,0,0,0,0]; % Initial position/velocity
    force_table_predator = rand(51,2)-0.5;
    force_table_prey = rand(51,2)-0.5;
-   options = odeset('Events',@event,'RelTol',0.01);
+   options = odeset('Events',@event,'RelTol',0.001);
    [time_vals,sol_vals] = ode45(@(t,w) eom(t,w,mr,my,Frmax,Fymax,c,force_table_predator,force_table_prey), ...
        [0:1:250],initial_w,options);
    animate_projectiles(time_vals,sol_vals);
@@ -164,6 +164,8 @@ if (amiapredator)
         else
             ay = lastAy;
         end
+    else
+        lastTr = -1;
     end
     %{
     disp(t);
@@ -184,7 +186,7 @@ if (amiapredator)
         t_search_max = 250;
     else
 
-        py_expt = @(time) (1/2) * ay * min(time, 0)^2 + vy * min(time,20) + py;
+        py_expt = @(time) (1/2) * ay * min(time, 5)^2 + vy * min(time,20) + py;
 
         ar_required = @(t_int) (2 * (py_expt(t_int) - (vr * t_int) - pr)) / (t_int ^ 2);
         ar_required_mag = @(t_int) norm(ar_required(t_int));
@@ -235,9 +237,11 @@ if (amiapredator)
         F = Frmax*F./ norm(F);
 
     end
-    lastTr = t;
-    lastVy = vy;
-    lastAy = ay;
+    if(abs(t-lastTr) > 0.01)
+        lastTr = t;
+        lastVy = vy;
+        lastAy = ay;
+    end
     
 else
        % Code to compute the force to be applied to the prey
