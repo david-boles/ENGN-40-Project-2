@@ -154,7 +154,7 @@ if (amiapredator)
     disp(ay);
     %}
     
-    if sqrt((pr(1) - py(1))^2 +(pr(2) - py(2))^2) < 0
+    if sqrt((pr(1) - py(1))^2 +(pr(2) - py(2))^2) < -1
         ar_required = @(t_int) compute_acceleration_for_target(pr, vr, py, vy * max(1, 1/(t_int ^ 2)), t_int);
         ar_required_mag = @(t_int) norm(ar_required(t_int));
         fr_required = @(t_int) (ar_required(t_int) - [0;-9.81]) * 100;
@@ -162,7 +162,7 @@ if (amiapredator)
         t_int_best = 250;
         t_search_max = 250;
     else
-        py_expt = @(time) (1/2) * ay * min(time, 5)^2 + vy * min(time,20) + py;
+        py_expt = @(time) (1/2) * ay * min(time, 0)^2 + vy * min(time,20) + py;
         ar_required = @(t_int) (2 * (py_expt(t_int) - (vr * t_int) - pr)) / (t_int ^ 2);
         ar_required_mag = @(t_int) norm(ar_required(t_int));
         fr_required = @(t_int) (ar_required(t_int) - [0;-9.81]) * 100;
@@ -180,7 +180,7 @@ if (amiapredator)
     F = fr_required(t_int_best);
     if norm(F) > (1.3 * 100 * 9.8) 
         %disp("NOPE! Shortening...");
-        F = Frmax*F ./ norm(F);
+        F = Frmax*F./ norm(F);
     end
     
     
@@ -190,7 +190,7 @@ if (amiapredator)
     pr_y = pr(2);
     
     traject_min = -0.5*vr_y^2/ar_max_y + pr_y;
-    if traject_min < min_gnd_dist
+    if traject_min < min_gnd_dist && vr_y < 0
         F = [0;Frmax];    
     end 
     
@@ -207,15 +207,22 @@ if (amiapredator)
     lastAy = ay;
     %disp(F);
 else
-    
-    if (mod(t,50) <= 25 || py(2) <= 1)
+   %
+    if (mod(t,50) >= 25 || py(2) <= 20)
         F = [0;Fymax];
     else
         F = [0;-Fymax+9.81];
     end
 
+     
+    
+    
+    
+    
+    
 end
 
+%
 if sqrt((pr(1) - py(1))^2 +(pr(2) - py(2))^2) <= 1
     disp(['GOTCHA']);
 end
